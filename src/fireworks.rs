@@ -1,20 +1,32 @@
+mod axis;
 mod burst;
+mod catalog;
 mod effect;
 mod motion;
 mod pattern;
+mod ramp;
+mod range;
 mod spark;
 mod stage;
 mod star;
+mod strobe;
 mod target;
+mod trail;
 
+use axis::Axis;
 use burst::Burst;
+pub use catalog::*;
 pub use effect::{Effect, EffectId};
 use motion::Motion;
 use pattern::Pattern;
+use ramp::Ramp;
+pub use range::Range;
 use spark::Spark;
 use stage::Stage;
 use star::Star;
+use strobe::Strobe;
 use target::Target;
+use trail::Trail;
 
 use crate::world::World;
 
@@ -25,366 +37,6 @@ use foldhash::fast::FixedState;
 use glam::Vec3;
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
-
-pub const FX_BROCADE: EffectId = 0;
-pub const FX_CHRYSANTHEMUM: EffectId = 1;
-pub const FX_COMET: EffectId = 2;
-pub const FX_CROSSETTE: EffectId = 3;
-pub const FX_DRAGONS_EGGS: EffectId = 4;
-pub const FX_FISH: EffectId = 5;
-pub const FX_PALM: EffectId = 6;
-pub const FX_PEONY: EffectId = 7;
-pub const FX_PISTIL: EffectId = 8;
-pub const FX_STROBE: EffectId = 9;
-pub const FX_TOURBILLION: EffectId = 10;
-pub const FX_WILLOW: EffectId = 11;
-pub const FX_RING: EffectId = 12;
-
-pub const BROCADE: Effect = Effect {
-    lift_speed: SHELL_LIFT,
-    stages: &[
-        Stage::lift(&[Burst::sphere(
-            (85, 105),
-            Range::new(7.0, 9.0),
-            Target::new(FX_BROCADE, 1),
-        )]),
-        Stage::new(Range::new(3.4, 4.4), 0.3, GOLD_RAMP).trail(Trail {
-            drag: 1.0,
-            gravity: 0.28,
-            inherit: 0.04,
-            life: Range::new(1.3, 2.1),
-            ramp: GOLD_RAMP,
-            rate: 150.0,
-            spread: 0.2,
-        }),
-    ],
-};
-
-pub const CHRYSANTHEMUM: Effect = Effect {
-    lift_speed: SHELL_LIFT,
-    stages: &[
-        Stage::lift(&[Burst::sphere(
-            (170, 210),
-            Range::new(9.5, 12.5),
-            Target::new(FX_CHRYSANTHEMUM, 1),
-        )]),
-        Stage::new(Range::new(1.4, 1.9), 1.1, PURPLE_RAMP).trail(Trail {
-            drag: 1.4,
-            gravity: 0.6,
-            inherit: 0.06,
-            life: Range::new(0.3, 0.55),
-            ramp: PURPLE_RAMP,
-            rate: 80.0,
-            spread: 0.25,
-        }),
-    ],
-};
-
-pub const COMET: Effect = Effect {
-    lift_speed: Range::at(4.0),
-    stages: &[
-        Stage::new(Range::new(0.04, 0.06), 0.0, LIFT_RAMP).terminal(&[Burst {
-            axis: Axis::Velocity,
-            child: Target::new(FX_COMET, 1),
-            count: (5, 8),
-            inherit: 0.25,
-            offset: 0.0,
-            pattern: Pattern::Cone {
-                angle: 0.30,
-                jitter: 0.02,
-            },
-            speed: Range::new(20.0, 27.0),
-        }]),
-        Stage::new(Range::new(1.5, 2.1), 0.55, ORANGE_RAMP)
-            .motion(Motion::Thrust { accel: 3.5 })
-            .trail(Trail {
-                drag: 1.6,
-                gravity: 0.45,
-                inherit: 0.05,
-                life: Range::new(0.5, 0.9),
-                ramp: ORANGE_RAMP,
-                rate: 220.0,
-                spread: 0.5,
-            }),
-    ],
-};
-
-pub const CROSSETTE: Effect = Effect {
-    lift_speed: SHELL_LIFT,
-    stages: &[
-        Stage::lift(&[Burst::sphere(
-            (14, 18),
-            Range::new(8.0, 9.5),
-            Target::new(FX_CROSSETTE, 1),
-        )]),
-        Stage::new(Range::new(0.7, 0.85), 0.5, RED_RAMP)
-            .trail(Trail {
-                drag: 1.5,
-                gravity: 0.6,
-                inherit: 0.08,
-                life: Range::new(0.25, 0.5),
-                ramp: RED_RAMP,
-                rate: 90.0,
-                spread: 0.3,
-            })
-            .terminal(&[Burst {
-                axis: Axis::Velocity,
-                child: Target::new(FX_CROSSETTE, 2),
-                count: (4, 4),
-                inherit: 0.35,
-                offset: 0.0,
-                pattern: Pattern::Crossette {
-                    arms: 4,
-                    forward: 0.15,
-                    jitter: 0.05,
-                },
-                speed: Range::new(4.5, 5.5),
-            }]),
-        Stage::new(Range::new(0.5, 0.7), 1.0, WHITE_RAMP).terminal(&[Burst {
-            axis: Axis::Velocity,
-            child: Target::new(FX_CROSSETTE, 3),
-            count: (6, 10),
-            inherit: 0.4,
-            offset: 0.0,
-            pattern: Pattern::Sphere,
-            speed: Range::new(1.0, 2.2),
-        }]),
-        Stage::new(Range::new(0.15, 0.3), 3.0, WHITE_RAMP).gravity(0.8),
-    ],
-};
-
-pub const DRAGONS_EGGS: Effect = Effect {
-    lift_speed: SHELL_LIFT,
-    stages: &[
-        Stage::lift(&[Burst::sphere(
-            (110, 140),
-            Range::new(6.5, 9.5),
-            Target::new(FX_DRAGONS_EGGS, 1),
-        )]),
-        Stage::new(Range::new(0.7, 2.0), 1.5, GOLD_RAMP)
-            .trail(Trail {
-                drag: 2.0,
-                gravity: 0.7,
-                inherit: 0.05,
-                life: Range::new(0.15, 0.3),
-                ramp: GOLD_RAMP,
-                rate: 30.0,
-                spread: 0.15,
-            })
-            .terminal(&[Burst {
-                axis: Axis::Velocity,
-                child: Target::new(FX_DRAGONS_EGGS, 2),
-                count: (10, 16),
-                inherit: 0.3,
-                offset: 0.0,
-                pattern: Pattern::Sphere,
-                speed: Range::new(1.4, 3.2),
-            }]),
-        Stage::new(Range::new(0.06, 0.16), 4.0, WHITE_RAMP).gravity(0.9),
-    ],
-};
-
-pub const FISH: Effect = Effect {
-    lift_speed: SHELL_LIFT,
-    stages: &[
-        Stage::lift(&[Burst::sphere(
-            (45, 65),
-            Range::new(3.0, 5.0),
-            Target::new(FX_FISH, 1),
-        )]),
-        Stage::new(Range::new(1.1, 1.7), 0.9, PURPLE_RAMP)
-            .gravity(0.5)
-            .motion(Motion::Wander {
-                accel: 34.0,
-                hz: 7.0,
-            })
-            .trail(Trail {
-                drag: 2.5,
-                gravity: 0.5,
-                inherit: 0.05,
-                life: Range::new(0.12, 0.28),
-                ramp: PURPLE_RAMP,
-                rate: 110.0,
-                spread: 0.2,
-            }),
-    ],
-};
-
-pub const PALM: Effect = Effect {
-    lift_speed: SHELL_LIFT,
-    stages: &[
-        Stage::lift(&[Burst {
-            axis: Axis::Velocity,
-            child: Target::new(FX_PALM, 1),
-            count: (56, 56),
-            inherit: 0.2,
-            offset: 0.3,
-            pattern: Pattern::Spokes {
-                cone: 1.05,
-                spokes: 8,
-                spread: 0.055,
-            },
-            speed: Range::new(9.0, 13.0),
-        }]),
-        Stage::new(Range::new(1.7, 2.2), 0.55, GOLD_RAMP)
-            .motion(Motion::Thrust { accel: 2.0 })
-            .trail(Trail {
-                drag: 1.3,
-                gravity: 0.4,
-                inherit: 0.05,
-                life: Range::new(0.55, 1.0),
-                ramp: GOLD_RAMP,
-                rate: 190.0,
-                spread: 0.3,
-            }),
-    ],
-};
-
-pub const PEONY: Effect = Effect {
-    lift_speed: SHELL_LIFT,
-    stages: &[
-        Stage::lift(&[Burst::sphere(
-            (150, 190),
-            Range::new(9.0, 12.5),
-            Target::new(FX_PEONY, 1),
-        )]),
-        Stage::new(Range::new(1.2, 1.7), 1.4, GREEN_RAMP),
-    ],
-};
-
-pub const PISTIL: Effect = Effect {
-    lift_speed: SHELL_LIFT,
-    stages: &[
-        Stage::lift(&[
-            Burst::sphere(
-                (150, 180),
-                Range::new(10.0, 13.0),
-                Target::new(FX_PISTIL, 1),
-            ),
-            Burst::sphere((55, 70), Range::new(3.0, 4.6), Target::new(FX_PISTIL, 2)),
-        ]),
-        Stage::new(Range::new(1.3, 1.8), 1.3, SILVER_RAMP),
-        Stage::new(Range::new(1.5, 2.0), 1.3, RED_RAMP),
-    ],
-};
-
-pub const RING: Effect = Effect {
-    lift_speed: SHELL_LIFT,
-    stages: &[
-        Stage::lift(&[
-            Burst {
-                axis: Axis::World(Vec3::Z),
-                child: Target::new(FX_RING, 1),
-                count: (64, 64),
-                inherit: 0.1,
-                offset: 0.1,
-                pattern: Pattern::Ring { jitter: 0.03 },
-                speed: Range::new(10.0, 10.4),
-            },
-            Burst::sphere((30, 40), Range::new(1.5, 3.0), Target::new(FX_RING, 1)),
-        ]),
-        Stage::new(Range::new(1.4, 1.8), 1.3, CYAN_RAMP),
-    ],
-};
-
-pub const STROBE: Effect = Effect {
-    lift_speed: SHELL_LIFT,
-    stages: &[
-        Stage::lift(&[Burst::sphere(
-            (90, 120),
-            Range::new(5.0, 8.0),
-            Target::new(FX_STROBE, 1),
-        )]),
-        Stage::new(Range::new(2.6, 3.6), 2.0, WHITE_RAMP)
-            .gravity(0.55)
-            .flicker(11.0, 0.3),
-    ],
-};
-
-pub const TOURBILLION: Effect = Effect {
-    lift_speed: SHELL_LIFT,
-    stages: &[
-        Stage::lift(&[Burst::sphere(
-            (9, 14),
-            Range::new(7.0, 9.0),
-            Target::new(FX_TOURBILLION, 1),
-        )]),
-        Stage::new(Range::new(1.3, 1.8), 0.7, SILVER_RAMP)
-            .motion(Motion::Helix {
-                accel: 120.0,
-                hz: 5.5,
-            })
-            .trail(Trail {
-                drag: 1.5,
-                gravity: 0.5,
-                inherit: 0.03,
-                life: Range::new(0.35, 0.7),
-                ramp: SILVER_RAMP,
-                rate: 260.0,
-                spread: 0.1,
-            }),
-    ],
-};
-
-pub const WILLOW: Effect = Effect {
-    lift_speed: SHELL_LIFT,
-    stages: &[
-        Stage::new(Range::new(1.7, 1.9), 0.35, LIFT_RAMP)
-            .trail(LIFT_TRAIL)
-            .terminal(&[Burst::sphere(
-                (70, 90),
-                Range::new(6.0, 8.0),
-                Target::new(FX_WILLOW, 1),
-            )]),
-        Stage::new(Range::new(2.6, 3.4), 0.45, GOLD_RAMP).trail(Trail {
-            drag: 1.2,
-            gravity: 0.55,
-            inherit: 0.05,
-            life: Range::new(0.8, 1.4),
-            ramp: GOLD_RAMP,
-            rate: 60.0,
-            spread: 0.25,
-        }),
-    ],
-};
-
-pub const LIBRARY: &[Effect] = &[
-    BROCADE,
-    CHRYSANTHEMUM,
-    COMET,
-    CROSSETTE,
-    DRAGONS_EGGS,
-    FISH,
-    PALM,
-    PEONY,
-    PISTIL,
-    STROBE,
-    TOURBILLION,
-    WILLOW,
-    RING,
-];
-
-const ORANGE_RAMP: Ramp = Ramp::new(0x10, 8);
-const RED_RAMP: Ramp = Ramp::new(0x20, 8);
-const GOLD_RAMP: Ramp = Ramp::new(0x30, 8);
-const PURPLE_RAMP: Ramp = Ramp::new(0x40, 8);
-const CYAN_RAMP: Ramp = Ramp::new(0x50, 8);
-const GREEN_RAMP: Ramp = Ramp::new(0x60, 8);
-const SILVER_RAMP: Ramp = Ramp::new(0x70, 6);
-const WHITE_RAMP: Ramp = Ramp::new(0x70, 8);
-const LIFT_RAMP: Ramp = GOLD_RAMP;
-
-const SHELL_LIFT: Range = Range::new(40.0, 44.0);
-
-const LIFT_TRAIL: Trail = Trail {
-    drag: 2.0,
-    gravity: 0.3,
-    inherit: 0.1,
-    life: Range::new(0.15, 0.4),
-    ramp: LIFT_RAMP,
-    rate: 120.0,
-    spread: 0.7,
-};
 
 pub struct Fireworks {
     frame: u64,
@@ -459,7 +111,7 @@ impl Fireworks {
         for s in &self.stars {
             let stage = self.stage(s.effect, s.stage);
 
-            if let Some(fl) = &stage.flicker {
+            if let Some(fl) = &stage.strobe {
                 if !fl.lit(s.age, s.seed) {
                     continue;
                 }
@@ -596,12 +248,6 @@ impl Fireworks {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-pub enum Axis {
-    Velocity,
-    World(Vec3),
-}
-
 pub struct Basis {
     pub u: Vec3,
     pub v: Vec3,
@@ -630,18 +276,6 @@ pub struct EmitCtx {
     pub index: u16,
 }
 
-#[derive(Clone, Copy)]
-pub struct Flicker {
-    pub hz: f32,
-    pub lit_frac: f32,
-}
-
-impl Flicker {
-    fn lit(&self, age: f32, seed: u64) -> bool {
-        (Hash::phase(seed, 0x5B) + age * self.hz).fract() < self.lit_frac
-    }
-}
-
 struct Hash;
 
 impl Hash {
@@ -655,48 +289,6 @@ impl Hash {
 
     fn phase(seed: u64, k: u64) -> f32 {
         ((Self::mix(seed, k) >> 40) as f32) * (1.0 / 16_777_216.0)
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct Ramp {
-    pub base: u8,
-    pub len: u8,
-}
-
-impl Ramp {
-    pub const fn new(base: u8, len: u8) -> Self {
-        Self { base, len }
-    }
-
-    pub fn sample(&self, t: f32) -> u8 {
-        if self.len == 0 {
-            return self.base;
-        }
-
-        let i = (t * self.len as f32) as u16;
-
-        self.base.wrapping_add(i.min(self.len as u16 - 1) as u8)
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct Range {
-    pub min: f32,
-    pub max: f32,
-}
-
-impl Range {
-    pub const fn new(min: f32, max: f32) -> Self {
-        Self { min, max }
-    }
-
-    pub const fn at(v: f32) -> Self {
-        Self { min: v, max: v }
-    }
-
-    pub fn sample(&self, rng: &mut SmallRng) -> f32 {
-        self.min + (self.max - self.min) * rng.random::<f32>()
     }
 }
 
@@ -715,14 +307,3 @@ trait SampleDir: Rng + Sized {
 }
 
 impl<T: Rng> SampleDir for T {}
-
-#[derive(Clone, Copy)]
-pub struct Trail {
-    pub drag: f32,
-    pub gravity: f32,
-    pub inherit: f32,
-    pub life: Range,
-    pub ramp: Ramp,
-    pub rate: f32,
-    pub spread: f32,
-}

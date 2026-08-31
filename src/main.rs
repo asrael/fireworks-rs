@@ -18,7 +18,7 @@ use winit::event::{ElementState, MouseButton, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::window::{Window, WindowId};
 
-use fireworks::{EffectId, Fireworks, Range, LIBRARY};
+use fireworks::{EffectId, Fireworks, Range, CATALOG};
 use renderer::{Renderer, HEIGHT, WIDTH};
 use world::World;
 
@@ -43,7 +43,7 @@ impl App {
         Self {
             auto_show: true,
             cursor: None,
-            fireworks: Fireworks::new(LIBRARY, World::default(), 0x5EED),
+            fireworks: Fireworks::new(CATALOG, World::default(), 0x5EED),
             last_frame: Instant::now(),
             next_launch: 0.5,
             pixels: Rc::new(RefCell::new(None)),
@@ -57,7 +57,7 @@ impl App {
 
     fn launch(&mut self, id: EffectId) {
         let x = LAUNCH_X.sample(&mut self.rng);
-        let up = LIBRARY[id as usize].lift_speed.sample(&mut self.rng);
+        let up = CATALOG[id as usize].lift_speed.sample(&mut self.rng);
 
         self.fireworks
             .launch(id, Vec3::new(x, 0.0, 0.0), Vec3::new(0.0, up, 0.0));
@@ -69,7 +69,7 @@ impl App {
         if self.next_launch <= 0.0 {
             let id = if self.auto_show {
                 self.next_launch = 1.0;
-                self.rng.random_range(0..LIBRARY.len() as EffectId)
+                self.rng.random_range(0..CATALOG.len() as EffectId)
             } else {
                 self.next_launch = 3.0;
                 self.selected
@@ -162,7 +162,7 @@ impl ApplicationHandler for App {
 
                 if let Some((sx, sy)) = clicked {
                     let pos = Renderer::unproject(sx as f32, sy as f32);
-                    let id = self.rng.random_range(0..LIBRARY.len() as EffectId);
+                    let id = self.rng.random_range(0..CATALOG.len() as EffectId);
 
                     self.fireworks.burst(id, pos);
                 }
