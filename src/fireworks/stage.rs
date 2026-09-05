@@ -15,7 +15,7 @@ pub struct Stage {
 impl Stage {
     pub const fn lift(terminal: &'static [Burst]) -> Self {
         Stage::star(LIFT_RAMP)
-            .burn(1.5, 1.7)
+            .burn(1.3, 1.9)
             .drag(0.35)
             .trail(LIFT_TRAIL)
             .terminal(terminal)

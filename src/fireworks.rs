@@ -38,6 +38,8 @@ use glam::Vec3;
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
 
+const MIN_FLIGHT: f32 = 1.0;
+
 pub struct Fireworks {
     frame: u64,
     lib: &'static [Effect],
@@ -61,24 +63,6 @@ impl Fireworks {
         }
     }
 
-    pub fn burst(&mut self, effect: EffectId, pos: Vec3) {
-        let lift = self.lib[effect as usize].lift_speed.sample(&mut self.rng);
-        let parent = Star {
-            age: 0.0,
-            effect,
-            life: 0.0,
-            pos,
-            seed: self.rng.random(),
-            stage: 0,
-            trail_acc: 0.0,
-            vel: Vec3::new(0.0, lift * 0.3, 0.0),
-        };
-
-        for b in self.stage(effect, 0).terminal {
-            self.fire_burst(b, &parent);
-        }
-    }
-
     pub fn launch(&mut self, effect: EffectId, pos: Vec3, vel: Vec3) {
         let stage = self.stage(effect, 0);
         let life = stage.life.sample(&mut self.rng);
@@ -89,6 +73,32 @@ impl Fireworks {
             effect,
             life,
             pos,
+            seed,
+            stage: 0,
+            trail_acc: 0.0,
+            vel,
+        });
+    }
+
+    pub fn launch_at(&mut self, effect: EffectId, from: Vec3, target: Vec3) {
+        let stage = self.stage(effect, 0);
+        let life = stage.life.sample(&mut self.rng).max(MIN_FLIGHT);
+        let seed = self.rng.random();
+        let accel = self.world.gravity * stage.gravity + self.world.wind;
+        let vel = if stage.drag > 0.0 {
+            let k = stage.drag;
+            let settle = accel / k;
+
+            settle + (target - from - settle * life) * (k / (1.0 - (-k * life).exp()))
+        } else {
+            (target - from) / life - accel * (life * 0.5)
+        };
+
+        self.push_star(Star {
+            age: 0.0,
+            effect,
+            life,
+            pos: from,
             seed,
             stage: 0,
             trail_acc: 0.0,

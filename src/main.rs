@@ -23,6 +23,8 @@ use renderer::{Renderer, HEIGHT, WIDTH};
 use world::World;
 
 const LAUNCH_X: Range = Range::new(-18.0, 18.0);
+const LEAN: Range = Range::new(-5.0, 5.0);
+const TILT: Range = Range::new(-0.1, 0.1);
 
 struct App {
     auto_show: bool,
@@ -58,9 +60,10 @@ impl App {
     fn launch(&mut self, id: EffectId) {
         let x = LAUNCH_X.sample(&mut self.rng);
         let up = CATALOG[id as usize].lift_speed.sample(&mut self.rng);
+        let tilt = TILT.sample(&mut self.rng);
+        let vel = Vec3::new(up * tilt.sin(), up * tilt.cos(), 0.0);
 
-        self.fireworks
-            .launch(id, Vec3::new(x, 0.0, 0.0), Vec3::new(0.0, up, 0.0));
+        self.fireworks.launch(id, Vec3::new(x, 0.0, 0.0), vel);
     }
 
     fn update(&mut self, dt: f32) {
@@ -161,10 +164,11 @@ impl ApplicationHandler for App {
                 });
 
                 if let Some((sx, sy)) = clicked {
-                    let pos = Renderer::unproject(sx as f32, sy as f32);
+                    let target = Renderer::unproject(sx as f32, sy as f32);
+                    let from = Vec3::new(target.x + LEAN.sample(&mut self.rng), 0.0, 0.0);
                     let id = self.rng.random_range(0..CATALOG.len() as EffectId);
 
-                    self.fireworks.burst(id, pos);
+                    self.fireworks.launch_at(id, from, target);
                 }
             }
 

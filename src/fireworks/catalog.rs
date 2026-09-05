@@ -339,7 +339,7 @@ pub const WILLOW: Effect = Effect {
             Range::new(6.0, 8.0),
             Target::new(FX_WILLOW, 1),
         )])
-        .fuse(1.7, 1.9),
+        .fuse(1.6, 2.1),
         Stage::star(GOLD_RAMP)
             .burn(2.6, 3.4)
             .drag(0.45)
